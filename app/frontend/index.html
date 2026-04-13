@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Demo QA Automation App</title>
+    <style>
+        #dashboard, #profile-form { display: none; }
+        table, th, td { border: 1px solid black; border-collapse: collapse; padding: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Demo QA Automation App</h1>
+
+    <!-- Login Form -->
+    <form id="login-form">
+        <input type="text" id="username" placeholder="Username" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button type="submit">Login</button>
+    </form>
+
+    <!-- Dashboard -->
+    <div id="dashboard">
+        <h2>Dashboard</h2>
+        <button id="show-profile">Edit Profile</button>
+
+        <h3>Tasks</h3>
+        <form id="task-form">
+            <input type="number" id="task-id" placeholder="Task ID" required>
+            <input type="text" id="task-name" placeholder="Task Name" required>
+            <input type="text" id="task-status" placeholder="Status" required>
+            <input type="text" id="task-priority" placeholder="Priority" required>
+            <button type="submit">Add Task</button>
+        </form>
+
+        <table id="task-table">
+            <thead>
+                <tr>
+                    <th>ID</th><th>Task</th><th>Status</th><th>Priority</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Profile Form -->
+    <div id="profile-form">
+        <h2>Profile Form</h2>
+        <form id="profile">
+            <input type="text" id="name" placeholder="Name" required>
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="text" id="phone" placeholder="Phone Number" required>
+            <input type="number" id="age" placeholder="Age" required>
+            <button type="submit">Submit Profile</button>
+        </form>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById("login-form");
+        const dashboard = document.getElementById("dashboard");
+        const profileDiv = document.getElementById("profile-form");
+
+        // LOGIN
+        loginForm.addEventListener("submit", async e => {
+            e.preventDefault();
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            try {
+                const res = await fetch(`http://127.0.0.1:8001/login?username=${username}&password=${password}`, {method:"POST"});
+                const data = await res.json();
+                if(data.message === "Login successful"){
+                    loginForm.style.display = "none";
+                    dashboard.style.display = "block";
+                    loadTasks();
+                } else alert(data.message);
+            } catch (err) {
+                alert("Backend not reachable");
+            }
+        });
+
+        // PROFILE FORM
+        document.getElementById("show-profile").addEventListener("click", () => {
+            profileDiv.style.display = "block";
+        });
+
+        document.getElementById("profile").addEventListener("submit", async e => {
+            e.preventDefault();
+            const profile = {
+                name: document.getElementById("name").value,
+                email: document.getElementById("email").value,
+                phone: document.getElementById("phone").value,
+                age: parseInt(document.getElementById("age").value)
+            };
+            try {
+                const res = await fetch("http://127.0.0.1:8001/profile", {
+                    method:"POST",
+                    headers:{"Content-Type":"application/json"},
+                    body: JSON.stringify(profile)
+                });
+                const data = await res.json();
+                alert(data.message || data.detail);
+            } catch (err) {
+                alert("Backend not reachable");
+            }
+        });
+
+        // TASKS
+        const taskForm = document.getElementById("task-form");
+        const taskTable = document.getElementById("task-table").getElementsByTagName("tbody")[0];
+
+        taskForm.addEventListener("submit", async e => {
+            e.preventDefault();
+            const task = {
+                id: parseInt(document.getElementById("task-id").value),
+                task: document.getElementById("task-name").value,
+                status: document.getElementById("task-status").value,
+                priority: document.getElementById("task-priority").value
+            };
+
+            try {
+                await fetch("http://127.0.0.1:8001/tasks", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify(task)
+                });
+                loadTasks();
+            } catch (err) {
+                alert("Backend not reachable");
+            }
+        });
+
+        async function loadTasks() {
+            try {
+                const res = await fetch("http://127.0.0.1:8001/tasks");
+                const data = await res.json();
+                const tasks = data.tasks;
+
+                taskTable.innerHTML = "";
+                tasks.forEach(t => {
+                    const row = taskTable.insertRow();
+                    row.insertCell(0).innerText = t.id;
+                    row.insertCell(1).innerText = t.task;
+                    row.insertCell(2).innerText = t.status;
+                    row.insertCell(3).innerText = t.priority;
+
+                    const delCell = row.insertCell(4);
+                    const btn = document.createElement("button");
+                    btn.innerText = "Delete";
+                    btn.onclick = async () => {
+                        await fetch(`http://127.0.0.1:8001/tasks/${t.id}`, {method: "DELETE"});
+                        loadTasks();
+                    };
+                    delCell.appendChild(btn);
+                });
+            } catch (err) {
+                console.error("Could not load tasks", err);
+            }
+        }
+
+        // Initial load (in case tasks exist)
+        loadTasks();
+    </script>
+</body>
+</html>
