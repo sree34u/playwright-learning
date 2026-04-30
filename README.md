@@ -32,10 +32,10 @@ This repo may include:
 
 Expect frequent changes and non-production-ready code.
 
-🤝 Contributions
+## 🤝 Contributions
 
 This is a personal learning repository, but suggestions and improvements are welcome.
 
-📄 License
+## 📄 License
 
 This project is for educational purposes.
